@@ -17,4 +17,4 @@
 
 
 
-### Note:  Check the old model description for more info on those file
+### Note:  Check the old model descriptions for more info on those file
