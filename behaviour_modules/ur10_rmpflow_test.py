@@ -8,18 +8,19 @@ from isaacsim.core.prims import XFormPrim, RigidPrim  # type: ignore
 from isaacsim.core.utils.numpy.rotations import euler_angles_to_quats  # type: ignore
 from isaacsim.robot_motion.motion_generation import RmpFlow, ArticulationMotionPolicy  # type: ignore
 from isaacsim.core.api.objects.cuboid import FixedCuboid  # type: ignore
-
+from isaacsim.robot.manipulators.grippers.surface_gripper import SurfaceGripperer #type:ignore
 
 # Global variables to persist across compute calls
 arm_art = None
 rmpflow = None
 articulation_rmpflow = None
+suction_gripper = None
 target = None
 step = 1/60 # physics step size
 dbg_mode = True
 
 def setup(db: og.Database):
-    global arm_art, rmpflow, articulation_rmpflow, target
+    global arm_art, suction_gripper, rmpflow, articulation_rmpflow, target
 
     print(f"Setting up.....")
 
@@ -30,6 +31,11 @@ def setup(db: og.Database):
     robot_prim_path = "/World/ur10_short_suction"
     arm_art = Articulation(robot_prim_path)
     arm_art.initialize()
+
+    # setting up the end-effector terms
+    suction_gripper = SurfaceGripperer(
+        end_effector_prim_path="/World/ur10_short_suction/ee_link/gripper_base",
+    )
     
     # Load target transform
     target_prim_path = "/World/target"
@@ -52,7 +58,7 @@ def setup(db: og.Database):
 
 
 def compute(db: og.Database):
-    global arm_art, rmpflow, articulation_rmpflow, target
+    global arm_art, suction_gripper, rmpflow, articulation_rmpflow, target
 
     if arm_art is None or rmpflow is None or articulation_rmpflow is None or target is None:
         db.log_error("Motion system is not initialized. Please trigger setup first.")
@@ -63,6 +69,9 @@ def compute(db: og.Database):
     target_position = target_position[0]
     target_orientation = target_orientation[0]
     # print(f"Target Pos: {target_position},  Target Orientation(quat): {target_orientation}")
+
+    # check gripper status
+    print(f"gripper status: {suction_gripper.is_closed()}")
 
     # Set target pose in RMPFlow
     rmpflow.set_end_effector_target(target_position, target_orientation)

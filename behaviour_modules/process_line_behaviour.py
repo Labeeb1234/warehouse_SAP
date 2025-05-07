@@ -10,6 +10,7 @@ from isaacsim.replicator.behavior.utils.behavior_utils import ( # type: ignore
 )
 
 from isaacsim.core.prims import RigidPrim # type: ignore
+from isaacsim.core.api.materials import OmniPBR, VisualMaterial # type: ignore
 from pxr import Usd, Sdf, Gf, UsdGeom # type: ignore
 
 import numpy as np
@@ -20,7 +21,7 @@ class MoveBoxBehaviour(BehaviorScript):
         {
             "attr_name": "interval",
             "attr_type": Sdf.ValueTypeNames.UInt,
-            "default_value": 0,
+            "default_value": 10,
             "doc": "Interval for updating the behavior. Value 0 means every frame.",
         },
         {
@@ -31,12 +32,22 @@ class MoveBoxBehaviour(BehaviorScript):
         },
     ]
 
+    default_material = OmniPBR(
+        prim_path="/World/warehouse_imports/Cardbox_B1/Looks/Cardboard_B1"
+    )
+    green_material_color = OmniPBR(
+        prim_path="/World/warehouse_imports/Cardbox_B1/Looks/PCB_B1",
+        color=np.array([0.0, 0.4, 0.0]),
+    )
+    green_material_color.set_reflection_roughness(0.1)  # glossy surface
+    green_material_color.set_metallic_constant(0.0) 
+
     def on_init(self):
         carb.log_info("Initializing Behaviour Script...")
         self._update_counter = 0
         self._interval = 0
         self._start_process = False
-        
+
         self._valid_prims = []
         self.cb_rigid_prim = None
         self._rigid_prim_initialized = False
@@ -76,14 +87,12 @@ class MoveBoxBehaviour(BehaviorScript):
             
             # running the behaviour/logic every self._interval
             if self._update_counter >= self._interval:
-                print(f"on_update({current_time}, {delta_time}, {1/delta_time})")
+                print(f"on_update(t:{current_time}, dt:{delta_time}, physics_updr:{1/delta_time})")
 
                 if self._start_process:
-                    print(f"going invisible")
-                    if current_time > 3.0 and current_time < 5.0:
-                        self.cb_rigid_prim.set_visibilities(np.array([False]))
-                    elif current_time > 5.0:
-                        self.cb_rigid_prim.set_visibilities(np.array([True]))
+                    print(f"entering...")
+                    if current_time > 8.0 and current_time <= 8.1:
+                        self.cb_rigid_prim.apply_visual_materials(self.green_material_color)
 
                 self._update_counter = 0
 
@@ -107,11 +116,18 @@ class MoveBoxBehaviour(BehaviorScript):
             )
             self._rigid_prim_initialized = True
             carb.log_info(f"Cardbox_B1 rigid prim initialized at prim path: {prim_path}")
+            # setting default color on setup
+            self.cb_rigid_prim.apply_visual_materials(self.default_material)
+
 
         if not self.prim.IsValid():
             carb.log_info("prim not valid yet!")
 
     def _reset(self):
+        if self.cb_rigid_prim and self.cb_rigid_prim.prims:
+            self.cb_rigid_prim.apply_visual_materials(self.default_material)
+            carb.log_info("Reset to default material.")
+
         self._valid_prims.clear()
         self._rigid_prim_initialized = False
         self.cb_rigid_prim = None
