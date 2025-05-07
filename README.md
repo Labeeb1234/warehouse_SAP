@@ -1,3 +1,5 @@
+- Framwork: Isaacsim - Python
+
 ### Tasks (SMTLine assmebly line functionality)
 --------------------------------------------------------------
 - Mesh selection (done)
@@ -9,7 +11,7 @@
 - integrated rmpflow (done)
 - need to check cortex framework app with a custom USD env, the warehouse env USD ---> (ongoing)
 
-### Tasks (Creating the pick and place routine using DECIDER STATE MACHINE)
+### Tasks (Developing the pick and place routine using DECIDER STATE MACHINE)
 ----------------------------------------------------------------
 - creating reach pose state
 - creating status checker and logical state monitor class to monitor feedbacks
