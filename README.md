@@ -1,4 +1,4 @@
-- Framwork: Isaacsim - Python
+- Framwork: Isaacsim(4.5.0) - Python
 
 ### Tasks (SMTLine assmebly line functionality)
 --------------------------------------------------------------
