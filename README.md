@@ -9,7 +9,7 @@
  ----> (USING STATE MACHINE TO MODEL THE ROUTINE TASKS)
 - Created a null space tester code in state machine model (done) --> for testing purposes
 - integrated rmpflow (done)
-- need to check cortex framework app with a custom USD env, the warehouse env USD ---> (done successfull)
+- need to check cortex framework app with a custom USD env, the warehouse env USD ---> (done successful)
 
 ### Tasks (Developing the pick and place routine using DECIDER STATE MACHINE)
 ----------------------------------------------------------------
