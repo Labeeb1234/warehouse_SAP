@@ -13,7 +13,7 @@
 
 ### Tasks (Developing the pick and place routine using DECIDER STATE MACHINE)
 ----------------------------------------------------------------
-- creating reach pose state
+- creating reach to pose state
 - creating status checker and logical state monitor class to monitor feedbacks
 - creating on and off states for gripper (done) ---> untested
 
