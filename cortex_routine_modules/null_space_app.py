@@ -5,24 +5,24 @@ import numpy as np
 import torch
 import time
 import logging
-import os 
 import omni
+import os
 
 from isaacsim.cortex.framework.cortex_world import CortexWorld #type:ignore
 from isaacsim.cortex.framework.robot import add_ur10_to_stage #type:ignore
 from isaacsim.cortex.framework.df import DfNetwork, DfState, DfStateMachineDecider, DfStateSequence, DfWaitState #type:ignore
 from isaacsim.cortex.framework.dfb import DfBasicContext #type:ignore
 
-
 def vis_debug_callback(step_size, bot_collision_vis=False):
     if bot_collision_vis:
         robot.motion_policy.visualize_collision_spheres()
 
 
-class SampleStateTester(DfState):
+class SingularityTesterState(DfState):
     def __init__(self):
         super().__init__()
-        self.target_pos = np.array([0.7, 0.0, 0.5])
+        print("<null space test state>")
+        self.target_pos = None
         self.entry_time = None
 
     @property
@@ -38,41 +38,23 @@ class SampleStateTester(DfState):
 
     def enter(self):
         self.entry_time = time.time()
+        posture_config = self.get_posture_config() + np.random.randn(6)
+        self.target_pos, _ = self.robot.arm.get_end_effector_pose()
+
+        print(f"setting target pos as: {self.target_pos}")
         print(f"starting end effector pose: {self.robot.arm.get_end_effector_pose()}\n")
-        print(f"starting joint positions: {self.robot_art.get_joint_positions()}\n")
-        print(f"setting target pos as: {self.target_pos}")     
-
-    def step(self):
-        self.robot.arm.send_end_effector(target_position=self.target_pos)
-        print(f"Moving to target position: {self.target_pos}")
-        return None
-
-
-class CloseGripperState(DfState):
-    @property
-    def robot(self):
-        return self.context.robot
-    
-    def enter(self):
-        print("<close suction gripper>")
-        if not self.robot.suction_gripper.is_closed():
-            self.robot.suction_gripper.close()
+        print(f"going to joint positions: {posture_config}\n")
         
-    def step(self):
-        return self
+        self.robot.arm.send_end_effector(target_position=self.target_pos, posture_config=posture_config)    
 
-class OpenGripperState(DfState):
-    @property
-    def robot(self):
-        return self.context.robot
-
-    def enter(self):
-        print("<open suction gripper>")
-        if self.robot.suction_gripper.is_closed():
-            self.robot.suction_gripper.open()
-    
     def step(self):
+        if time.time()-self.entry_time < 2.0:
+            print(f"current joint positions(rad): {self.robot_art.get_joint_positions()}")
+            print(f"current joint positions(deg): {self.robot_art.get_joint_positions()*(180.0/np.pi)}\n")
+            return self
+        print(f"exit")
         return None
+    
 
 
 # ------------ loading a custom USD scene into the cortex world system ----------------
@@ -109,7 +91,7 @@ decider_network = DfNetwork(
     DfStateMachineDecider(
         DfStateSequence(
             [
-                SampleStateTester(),
+                SingularityTesterState(),
             ], 
         
         loop=True)),
@@ -123,8 +105,3 @@ world.run(simulation_app)
 
 
 simulation_app.close()
-
-
-
-
-
