@@ -13,10 +13,10 @@ from isaacsim.core.prims import RigidPrim #type:ignore
 from pxr import Usd #type:ignore
 
 import isaacsim.cortex.framework.math_util as math_utils #type:ignore
-from isaacsim.cortex.framework.motion_commander import ApproachParams #type:ignore
+from isaacsim.cortex.framework.motion_commander import ApproachParams, PosePq #type:ignore
 from isaacsim.cortex.framework.cortex_world import CortexWorld #type:ignore
 from isaacsim.cortex.framework.robot import add_ur10_to_stage #type:ignore
-from isaacsim.cortex.framework.df import DfNetwork, DfState, DfStateMachineDecider, DfStateSequence, DfWaitState #type:ignore
+from isaacsim.cortex.framework.df import DfNetwork, DfState, DfStateMachineDecider, DfStateSequence, DfWaitState, DfSetLockState #type:ignore
 from isaacsim.cortex.framework.dfb import DfBasicContext, DfRobotApiContext, DfDiagnosticsMonitor #type:ignore
 
 
@@ -24,29 +24,36 @@ def vis_debug_callback(step_size, bot_collision_vis=False):
     if bot_collision_vis:
         robot.motion_policy.visualize_collision_spheres()
 
+class PickPlaceDiagnosticsMonitor(DfDiagnosticsMonitor):
+    def __init__(self, print_dt=1.0, diagnostic_fn=None):
+        super().__init__(print_dt=print_dt)
+        self.diagnostic_fn = diagnostic_fn
+
+    def print_diagnostics(self, context):
+        print(context.joint_info)
+        print(context.eef_info)
 
 
-
-
-class SampleStateContext(DfRobotApiContext):
-    def __init__(self, robot, obj: Optional[RigidPrim], p_thresh: float=0.005, r_thresh: float=1.0):
+class PickPlaceContext(DfRobotApiContext):
+    def __init__(self, robot, obj: Optional[RigidPrim], p_thresh: float=0.003, r_thresh: float=1.0, monitor_fn=None):
         super().__init__(robot)
         self.reset()
 
-        self.add_monitors(
-            [SampleStateContext.monitor_end_effector,
-             SampleStateContext.monitor_joint_info, 
-             SampleStateContext.monitor_diagnostics
-            ]
-        )
-
         self.obj = obj
-        
-
-
-        self.is_grasped = False
         self.p_thresh, self.r_thresh = p_thresh, r_thresh
         self.target_pos, self.target_q = None, None
+
+        self.pp_diagnostics_monitor = PickPlaceDiagnosticsMonitor(print_dt=0.1, diagnostic_fn=monitor_fn)
+
+        self.eef_info = None
+        self.joint_info = None
+
+        self.add_monitors(
+            [PickPlaceContext.monitor_end_effector,
+             PickPlaceContext.monitor_joint_info,
+             self.pp_diagnostics_monitor.monitor
+            ]
+        )
 
     @property
     def robot_art(self):
@@ -63,31 +70,42 @@ class SampleStateContext(DfRobotApiContext):
         
         eef_pose = self.robot.arm.get_fk_T() # 4x4
         eef_pos, eef_q = math_utils.T2pq(eef_pose)
-
         self.target_pos, self.target_q = self.obj.get_world_poses()
         self.target_pos, self.target_q = np.squeeze(self.target_pos), np.squeeze(self.target_q)
         target_T = math_utils.pq2T(self.target_pos, self.target_q)
+    
+        errT = eef_pose-target_T
+        errR, errP = math_utils.unpack_T(errT)
+        nerrR = np.linalg.norm(errR)
 
-        self.is_target_reached = math_utils.transforms_are_close(
-            T1=eef_pose, T2=target_T, p_thresh=self.p_thresh, R_thresh=self.r_thresh
-        )
+        # self.is_target_reached = math_utils.transforms_are_close(
+        #     T1=eef_pose, T2=target_T, p_thresh=self.p_thresh, R_thresh=self.r_thresh
+        # )
+        self.is_target_reached = np.linalg.norm(eef_pos-self.target_pos) < self.p_thresh
 
-        print(f"current eff pose: {eef_pos}")
-        print(f"current target pose: {self.target_pos}\n")
+        self.eef_info = {
+            "current eef pose (FK_T)": eef_pose, 
+            "target pose": target_T,
+            "distance to target": np.linalg.norm(errP),
+            "angle to target(avg_along3)": nerrR,
+            "target reached": self.is_target_reached,
+            "grasped": self.is_grasped
+        }
 
     def monitor_joint_info(self):
         joint_positions = self.robot_art.get_joint_positions()
-        print(f"current joint positions: {joint_positions}")
+        num_active_joints = self.robot.arm.num_controlled_joints
+        self.joint_info = {
+            "cspace_joints": num_active_joints,
+            "joint_position(rad)": joint_positions,
+            "joint_position(deg)": joint_positions*(180/np.pi),
+        }
         
-    def monitor_diagnostics(self):
-        print
-        print(f"is_target_reached: {self.is_target_reached}")
-    
-
-class SampleStateTester(DfState):
+class ReachToPick(DfState):
     def __init__(self):
         super().__init__()
         self.entry_time = None
+
         print("<Sample Test State>")
 
     @property
@@ -97,10 +115,6 @@ class SampleStateTester(DfState):
     @property
     def robot_art(self):
         return self.robot.arm.articulation_subset
-    
-    @property
-    def obj(self):
-        return self.context.obj
     
     def get_posture_config(self):
         return self.robot.arm.motion_policy.get_default_cspace_position_target()
@@ -112,36 +126,30 @@ class SampleStateTester(DfState):
         print(f"setting target pos(p) and orientation(q) as: [{self.context.target_pos}--{self.context.target_q}]")
 
     def step(self):
-        approach_params = ApproachParams(direction=0.35*np.array([0.0, 0.0, -1.0]), std_dev=0.04)
-        self.robot.arm.send_end_effector(target_position=self.context.target_pos, approach_params=approach_params)
+        approach_params = ApproachParams(direction=0.3*np.array([0.0, 0.0, -1.0]), std_dev=0.04)
+        posture_config = np.array([-1.57, -1.57, -1.57, -1.57, 1.57, -3.4733276e-08])
+        self.robot.arm.send_end_effector(
+            target_position=self.context.target_pos, approach_params=approach_params, posture_config=posture_config
+        )
+        if self.context.is_target_reached:
+            return None
+        
         return self
 
 
-# class CloseGripperState(DfState):
-#     @property
-#     def robot(self):
-#         return self.context.robot
-    
-#     def enter(self):
-#         print("<close suction gripper>")
-#         if not self.robot.suction_gripper.is_closed():
-#             self.robot.suction_gripper.close()
-        
-#     def step(self):
-#         return self
+class CloseSuctionGripper(DfState):
+    def enter(self):
+        print("<close gripper>")
+        self.context.robot.suction_gripper.close()
+    def step(self):
+        return None
 
-# class OpenGripperState(DfState):
-#     @property
-#     def robot(self):
-#         return self.context.robot
-
-#     def enter(self):
-#         print("<open suction gripper>")
-#         if self.robot.suction_gripper.is_closed():
-#             self.robot.suction_gripper.open()
-    
-#     def step(self):
-#         return None
+class OpenSuctionGripper(DfState):
+    def enter(self):
+        print("<open gripper>")
+        self.context.robot.suction_gripper.open()
+    def step(self):
+        return None
 
 
 # ------------ loading a custom USD scene into the cortex world system ----------------
@@ -187,20 +195,18 @@ obj = RigidPrim(
 decider_network = DfNetwork(
     DfStateMachineDecider(
         DfStateSequence(
-            [
-                SampleStateTester(),
+            [   
+                ReachToPick(),
+                DfWaitState(wait_time=0.5),
+                CloseSuctionGripper()
             ], 
         
         loop=True)),
-    context=SampleStateContext(robot, obj)
+    context=PickPlaceContext(robot, obj)
 )
 world.add_decider_network(decider_network)
 # ---------------------------------------------------------------------------------------
-
-# world.add_physics_callback("sample_callback", vis_debug_callback)
 world.run(simulation_app)
-
-
 simulation_app.close()
 
 
