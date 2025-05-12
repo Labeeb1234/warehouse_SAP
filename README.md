@@ -13,9 +13,14 @@
 
 ### Tasks (Developing the pick and place routine using DECIDER STATE MACHINE)
 ----------------------------------------------------------------
-- creating reach to pose state (ongoing)
+- creating reach to pose state (done subject to changes based on the env and robot description file and URDF)
+- creating homing state (done)
+- creating reach to place state (ongoing)
+- creating some helper states (status based on requirement, as of now done)
 - creating status checker and logical state monitor class to monitor feedbacks (progress dependent on other tasks)
 - creating on and off states for gripper (done) ---> untested
+- creating state_machine_deicder (ongoing --> changed based env loaded)
+- creating Decider Network with states (future improvement)
 
 
 ## ===========================================================
