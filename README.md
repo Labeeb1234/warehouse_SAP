@@ -4,8 +4,10 @@
 --------------------------------------------------------------
 - Mesh selection (done)
 - Fix Mesh (done)
+- Mesh wrapping online (done)
+- Behaviour Script for process line (done --> can be improved as of now on hold)
 - model selection for arm (done selected UR10 arm with a suction gripper)
-- Test out cortext framwork for arm routine (done)
+- Test out cortex framwork for arm routine (done)
  ----> (USING STATE MACHINE TO MODEL THE ROUTINE TASKS)
 - Created a null space tester code in state machine model (done) --> for testing purposes
 - integrated rmpflow (done)
