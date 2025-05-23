@@ -16,13 +16,6 @@ from pxr import Usd, Sdf, Gf, UsdGeom # type: ignore
 import numpy as np
 import os
 
-
-
-'''
-
-PROTOTYPE TEMPLATE CODE
-
-'''
 class MoveBoxBehaviour(BehaviorScript):
     BEHAVIOUR_NS = "move_box_behaviour"
     VARIABLES_TO_EXPOSE = [
@@ -42,16 +35,16 @@ class MoveBoxBehaviour(BehaviorScript):
 
     # ---------------------------------- MATERIAL DEFINITIONS -------------------------------------------
     default_material = OmniPBR(
-        prim_path="/World/warehouse_imports/Cardbox_B1/Looks/Cardboard_B1"
+        prim_path="/World/assembly_line/warehouse_imports/Cardbox_B1/Looks/Cardboard_B1"
     )
 
     green_material_color = OmniPBR(
-        prim_path="/World/warehouse_imports/Cardbox_B1/Looks/PCB_B1",
+        prim_path="/World/assembly_line/warehouse_imports/Cardbox_B1/Looks/PCB_B1",
         color=np.array([0.0, 0.8, 0.0]),
     )
 
     pcb_material = OmniPBR(
-        prim_path="/World/warehouse_imports/Cardbox_B1/Looks/PCB2_B1",
+        prim_path="/World/assembly_line/warehouse_imports/Cardbox_B1/Looks/PCB2_B1",
     )
     user_dir = os.path.expanduser("~")
     pcb_material_texture_path = os.path.join(user_dir, 'labeeb/warehouse_sap/materials/PCB/TCom_Electronics_CircuitBoard_header.jpg')
@@ -100,33 +93,28 @@ class MoveBoxBehaviour(BehaviorScript):
             pass
         else:
             self._update_counter +=1
-            
             # running the behaviour/logic every self._interval
             if self._update_counter >= self._interval:
                 print(f"on_update(t:{current_time}, dt:{delta_time}, physics_updr:{1/delta_time})")
-                current_prim_scale = self.cb_rigid_prim.get_local_scales()
+
                 current_prim_pos, _ = self.cb_rigid_prim.get_world_poses()
                 current_prim_pos = np.squeeze(current_prim_pos)
+                self.cb_rigid_prim.set_world_poses(current_prim_pos, np.array([1.0, 0.0, 0.0, 0.0]))               
+                # need to change global pose dependencies to local frame ones for environment uniformity (future updates)
                 if self._start_process:
                     print("PCB Loaded")
-                    new_scale_values = current_prim_scale.copy()
-                    if current_time > 3.6 and current_time <= 5.0:
-                        print("Board Pre-processing And Solder Pasting..")
-                        new_scale_values -= 0.0001 
-                        self.cb_rigid_prim.set_local_scales(new_scale_values)
-
-                    self.cb_rigid_prim.set_world_poses(current_prim_pos, np.array([1.0, 0.0, 0.0, 0.0]))
-                    self.cb_rigid_prim.set_local_scales(new_scale_values)
-
-                    if current_time > 9.0 and current_time <= 12.0:
+                    if current_prim_pos[1] > -2200.0 and current_prim_pos[1] < -2146.0: 
                         print("SMT Placement Process..")
-                        if current_time > 9.0 and current_time <= 9.1:
+                        if current_prim_pos[1] > -2200.0 and current_prim_pos[1] < -2100.0:
                             self.cb_rigid_prim.apply_visual_materials(self.green_material_color)
                     
-                    if current_time > 15.4 and current_time <= 25:
+                    if current_prim_pos[1] > -2089.0 and current_prim_pos[1] < -1891.0:
                         print("(In Reflow Oven): Reflow Soldering and Component Pasting..")
-                        if current_time > 16.0 and current_time <= 16.1:
+                        if current_prim_pos[1] > -2075.0 and current_prim_pos[1] < -1900.0:
                             self.cb_rigid_prim.apply_visual_materials(self.pcb_material)
+                            
+                    if current_prim_pos[1] > -1800.0:
+                        self.cb_rigid_prim.set_velocities(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
 
                 self._update_counter = 0
 
@@ -171,8 +159,8 @@ class MoveBoxBehaviour(BehaviorScript):
         full_attr_name = f"{EXPOSED_ATTR_NS}:{self.BEHAVIOUR_NS}:{attr_name}"
         return get_exposed_variable(self.prim, full_attr_name)
     
-    # helper functions/attributes/methods
-    def _get_location(self):
+    # helper functions/methods
+    def _relative_location(self, rigid_prim1: RigidPrim, rigid_prim2: RigidPrim):
         pass
 
     def _cleanup_old_variables(self):
