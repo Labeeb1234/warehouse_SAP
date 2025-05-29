@@ -30,6 +30,13 @@
  <img src="https://github.com/user-attachments/assets/34cfebce-2f04-4c88-a094-68cecf4b6dd7" alt="STMLine warehouse setup"/>
 </div>
 
+### Documentation
+- Starting out all the tasks and the main framework and software used for this warehouse simualtion, which maybe extended to a digital twin simulation for purposes currently beyond the scope of this documentation
+- Initially the warehouse layout was created using out own blueprint and scale  (image given below) based on a PCB assembly based factory, eventually figured out the required assets for the required scale is hardly present anywhere by default so we scaled down the enviroment with the setup pic as shown in the previous section.
+<div align="centre">
+ <img src="https://github.com/user-attachments/assets/da691860-44eb-4021-bb8f-f10d6aa90420" alt="Initial Setup"/>
+</div>
+
 
 ## ===========================================================
 ### Note:  Check the old model descriptions for more info on those file
