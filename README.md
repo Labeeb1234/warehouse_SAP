@@ -57,4 +57,5 @@
 
 
 ## ===========================================================
-### Note:  Check the old model descriptions for more info on those file
+### Note:  Check the old model descriptions for more info on those file.
+### Note to Self: No commands to run as of now just an automatically running behaviour script for the assembly process mimicking; need to integrate the arm **decider_network-FSM** for pick and place routine.
