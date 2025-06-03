@@ -38,6 +38,8 @@
  <img src="https://github.com/user-attachments/assets/34cfebce-2f04-4c88-a094-68cecf4b6dd7" alt="STMLine warehouse setup"/>
 </div>
 
+- The USD file to be used [here]
+
 ### Documentation
 -------------------------------------------------------------
 - Starting out all the tasks and the main framework and software used for this warehouse simualtion, which maybe extended to a digital twin simulation for purposes currently beyond the scope of this documentation
