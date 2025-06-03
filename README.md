@@ -1,6 +1,6 @@
 # Warehouse SAP Simulation Documentation
 
-## 🛠 System Requirements and Dependencies
+## 🛠/📦 System Requirements and Dependencies
 
 - OS: Ubuntu 22.04 (can work on 24.04 not 24.1)
 - Software: NVDIA Isaacsim (4.5.0)
