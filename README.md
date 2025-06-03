@@ -1,6 +1,11 @@
 # Warehouse SAP Simulation Documentation
 
-- Framwork: Isaacsim(4.5.0) - Python
+## 🛠 System Requirements and Dependencies
+
+- OS: Ubuntu 22.04 (can work on 24.04 not 24.1)
+- Software: NVDIA Isaacsim (4.5.0)
+- Progamming Language: Python
+- Other dependencies required are installed automatically when IsaacSim base is installed in the system 
 
 ### Tasks (SMTLine assmebly line functionality)
 --------------------------------------------------------------
