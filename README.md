@@ -1,6 +1,7 @@
 # Warehouse SAP Simulation Documentation
 
-## 🛠/📦 System Requirements and Dependencies
+### 🛠/📦 System Requirements and Dependencies
+--------------------------------------------------------------
 
 - OS: Ubuntu 22.04 (can work on 24.04 not 24.1)
 - Software: NVDIA Isaacsim (4.5.0)
@@ -9,6 +10,7 @@
 
 ### Tasks (SMTLine assmebly line functionality)
 --------------------------------------------------------------
+
 - Mesh selection (done)
 - Fix Mesh (done)
 - Mesh wrapping online (done)
@@ -22,6 +24,7 @@
 
 ### Tasks (Developing the pick and place routine using DECIDER STATE MACHINE)
 ----------------------------------------------------------------
+
 - creating reach to pose state using base rmpflow motion planning (done subject to changes based on the env and robot description file and URDF)
 - creating homing state (done)
 - creating reach to place state (ongoing)
@@ -34,14 +37,18 @@
 
 ### Current Setup
 -------------------------------------------------------------
+
 <div align="centre">
  <img src="https://github.com/user-attachments/assets/34cfebce-2f04-4c88-a094-68cecf4b6dd7" alt="STMLine warehouse setup"/>
 </div>
 
-- The USD file to be used [here]
+- The USD file to be used [here](https://github.com/Labeeb1234/warehouse_SAP/blob/main/warehouse_setup/new_warehouse_setup_small.usd)
+- The arm models are directly referenced from the IsaacSim beta assets (assesible from the GUI as of 2025), the other smalled imports are from the NVIDIA IsaacSim database also assesible from the GUI as of 2025.
+- **PS**: - There are chances of material dependency issues for the conveyor models as I had to locally install the materials for that particular model, for some reason IsaacSim was not able to detect it automatically from the omniverse link.
 
 ### Documentation
 -------------------------------------------------------------
+
 - Starting out all the tasks and the main framework and software used for this warehouse simualtion, which maybe extended to a digital twin simulation for purposes currently beyond the scope of this documentation
 - Initially the warehouse layout was created using out own blueprint and scale  (image given below) based on a PCB assembly based factory, eventually figured out the required assets for the required scale is hardly present anywhere by default so we scaled down the enviroment with the setup pic as shown in the previous section.
 <div align="centre">
