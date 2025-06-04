@@ -44,7 +44,7 @@
 
 - The USD file to be used [here](https://github.com/Labeeb1234/warehouse_SAP/blob/main/warehouse_setup/new_warehouse_setup_small.usd)
 - The arm models are directly referenced from the IsaacSim beta assets (assesible from the GUI as of 2025), the other smalled imports are from the NVIDIA IsaacSim database also assesible from the GUI as of 2025.
-- **PS**: - There are chances of material dependency issues for the conveyor models as I had to locally install the materials for that particular model, for some reason IsaacSim was not able to detect it automatically from the omniverse link.
+- **PS**: - There are chances of material dependency issues for the conveyor models as I had to locally install the materials for that particular model, for some reason IsaacSim was not able to detect/download it automatically from the omniverse database.
 
 ### Documentation
 -------------------------------------------------------------
