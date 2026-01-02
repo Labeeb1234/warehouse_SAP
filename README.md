@@ -52,7 +52,7 @@
 - Starting out all the tasks and the main framework and software used for this warehouse simualtion, which maybe extended to a digital twin simulation for purposes currently beyond the scope of this documentation
 - Initially the warehouse layout was created using out own blueprint and scale  (image given below) based on a PCB assembly based factory, eventually figured out the required assets for the required scale is hardly present anywhere by default so we scaled down the enviroment with the setup pic as shown in the previous section.
 <div align="centre">
- <img src="https://github.com/user-attachments/assets/da691860-44eb-4021-bb8f-f10d6aa90420" alt="Initial Setup"/>
+ <img src="https://github.com/user-attachments/assets/da691860-44eb-4021-bb8f-f10d6aa90420" alt="Initial Setup" height=512 width=512/>
 </div>
 
 - **Some Results Here** (need to organize)
