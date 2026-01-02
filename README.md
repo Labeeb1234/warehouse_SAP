@@ -55,6 +55,12 @@
  <img src="https://github.com/user-attachments/assets/da691860-44eb-4021-bb8f-f10d6aa90420" alt="Initial Setup"/>
 </div>
 
+- **Some Results Here** (need to organize)
+    <div>
+     <img src="https://github.com/user-attachments/assets/4b00670c-6c7a-4500-815a-7dfc985fecbf" alt="sigularity testing"/>
+    </div>
+
+
 
 ## ===========================================================
 ### Note:  Check the old model descriptions for more info on those file.
