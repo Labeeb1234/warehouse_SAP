@@ -60,6 +60,11 @@
      <img src="https://github.com/user-attachments/assets/4b00670c-6c7a-4500-815a-7dfc985fecbf" alt="sigularity testing"/>
     </div>
 
+    <div>
+     <img src="https://github.com/user-attachments/assets/94f77860-6ff0-47a4-a6b8-212756888129" alt="go to target pose testing"/>
+    </div>
+
+
 
 
 ## ===========================================================
