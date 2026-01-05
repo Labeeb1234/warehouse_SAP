@@ -38,25 +38,26 @@ class SingularityTesterState(DfState):
 
     def enter(self):
         self.entry_time = time.time()
+        print(self.get_posture_config())
         posture_config = self.get_posture_config() + np.random.randn(6)
-        self.target_pos, _ = self.robot.arm.get_end_effector_pose()
+        self.target_pos, self.target_rot = self.robot.arm.get_end_effector_pose() # FK
 
         print(f"setting target pos as: {self.target_pos}")
-        print(f"starting end effector pose: {self.robot.arm.get_end_effector_pose()}\n")
         print(f"going to joint positions: {posture_config}\n")
         
-        self.robot.arm.send_end_effector(target_position=self.target_pos, posture_config=posture_config)    
+        self.robot.arm.send_end_effector(target_position=self.target_pos, posture_config=posture_config)
 
     def step(self):
         if time.time()-self.entry_time < 2.0:
+            print(f"EEF pose: {self.robot.arm.get_end_effector_pose()}")
             print(f"current joint positions(rad): {self.robot_art.get_joint_positions()}")
             print(f"current joint positions(deg): {self.robot_art.get_joint_positions()*(180.0/np.pi)}\n")
             return self
-        print(f"exit")
+        print(f"exiting from state!")
         return None
     
 
-
+    
 # ------------ loading a custom USD scene into the cortex world system ----------------
 working_dir = os.path.join("/home/inlabust/labeeb/warehouse_sap")
 usd_file_path = os.path.join(working_dir, 'isolated_cortex_test_env.usd')
@@ -78,13 +79,13 @@ world = CortexWorld(
     rendering_dt=1/60,
     stage_units_in_meters=1.0,
     physics_prim_path=physics_path
-)
+) # cortex world (important stuff for every setup related to isaacsim decider networks)
 robot = world.add_robot(
     add_ur10_to_stage(
         name='ur10',
         prim_path="/World/ur10_suction"
     )
-)
+) # uses the default rmpflow config for ur10 (see isaacsim pkg source in motion generation)
 
 # --------------------- adding the behaviour/decider networks here ----------------------
 decider_network = DfNetwork(

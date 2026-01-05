@@ -25,63 +25,51 @@ def vis_debug_callback(step_size, bot_collision_vis=False):
         robot.motion_policy.visualize_collision_spheres()
 
 
-
-
-
 class SampleStateContext(DfRobotApiContext):
     def __init__(self, robot, obj: Optional[RigidPrim], p_thresh: float=0.005, r_thresh: float=1.0):
         super().__init__(robot)
         self.reset()
 
-        self.add_monitors(
-            [SampleStateContext.monitor_end_effector,
-             SampleStateContext.monitor_joint_info, 
-             SampleStateContext.monitor_diagnostics
-            ]
-        )
+        # adding the logical state monitors for feedback update and lookup
+        self.add_monitors([
+            SampleStateContext.monitor_end_effector
+        ])
 
         self.obj = obj
-        
-
-
-        self.is_grasped = False
         self.p_thresh, self.r_thresh = p_thresh, r_thresh
         self.target_pos, self.target_q = None, None
+        self.target_reached = False
 
     @property
     def robot_art(self):
         return self.robot.arm.articulation_subset
 
     def reset(self):
-        self.is_target_reached = False
-        self.is_grasped = False
+        self.target_reached = False
     
     def monitor_end_effector(self):
         if self.obj is None:
             print("[Warning] monitor_end_effector: self.obj is None.")
             return
         
+        # extracting eef TF
         eef_pose = self.robot.arm.get_fk_T() # 4x4
         eef_pos, eef_q = math_utils.T2pq(eef_pose)
 
+        # extracting target pose and TF
         self.target_pos, self.target_q = self.obj.get_world_poses()
         self.target_pos, self.target_q = np.squeeze(self.target_pos), np.squeeze(self.target_q)
         target_T = math_utils.pq2T(self.target_pos, self.target_q)
 
         self.is_target_reached = math_utils.transforms_are_close(
-            T1=eef_pose, T2=target_T, p_thresh=self.p_thresh, R_thresh=self.r_thresh
+            T1=eef_pose, T2=target_T, 
+            p_thresh=self.p_thresh, 
+            R_thresh=self.r_thresh
         )
 
-        print(f"current eff pose: {eef_pos}")
-        print(f"current target pose: {self.target_pos}\n")
+        # print(f"current eff pos: {eef_pos}")
+        # print(f"current target pose: {self.target_pos}\n")
 
-    def monitor_joint_info(self):
-        joint_positions = self.robot_art.get_joint_positions()
-        print(f"current joint positions: {joint_positions}")
-        
-    def monitor_diagnostics(self):
-        print
-        print(f"is_target_reached: {self.is_target_reached}")
     
 
 class SampleStateTester(DfState):
@@ -98,50 +86,30 @@ class SampleStateTester(DfState):
     def robot_art(self):
         return self.robot.arm.articulation_subset
     
-    @property
-    def obj(self):
-        return self.context.obj
-    
+    @staticmethod
     def get_posture_config(self):
         return self.robot.arm.motion_policy.get_default_cspace_position_target()
 
     def enter(self):
         self.entry_time = time.time()
+        print(f"[state entry time]: {self.entry_time}")
         print(f"starting end effector pose: {self.robot.arm.get_end_effector_pose()}\n")
         print(f"starting joint positions: {self.robot_art.get_joint_positions()}\n")
-        print(f"setting target pos(p) and orientation(q) as: [{self.context.target_pos}--{self.context.target_q}]")
+        print(f"starting object pose: {self.context.obj.get_world_poses()}")
+        print(f"starting object positions: {self.context.target_pos}\n")
 
     def step(self):
-        approach_params = ApproachParams(direction=0.35*np.array([0.0, 0.0, -1.0]), std_dev=0.04)
-        self.robot.arm.send_end_effector(target_position=self.context.target_pos, approach_params=approach_params)
+        if self.context.is_target_reached:
+            print(f"Target reached stopping state here")
+            # testing suction gripper (test lines only)
+            # self.robot.suction_gripper.close()
+            return None
+        self.robot.arm.send_end_effector(target_position=self.context.target_pos)
         return self
 
 
-# class CloseGripperState(DfState):
-#     @property
-#     def robot(self):
-#         return self.context.robot
-    
-#     def enter(self):
-#         print("<close suction gripper>")
-#         if not self.robot.suction_gripper.is_closed():
-#             self.robot.suction_gripper.close()
-        
-#     def step(self):
-#         return self
 
-# class OpenGripperState(DfState):
-#     @property
-#     def robot(self):
-#         return self.context.robot
 
-#     def enter(self):
-#         print("<open suction gripper>")
-#         if self.robot.suction_gripper.is_closed():
-#             self.robot.suction_gripper.open()
-    
-#     def step(self):
-#         return None
 
 
 # ------------ loading a custom USD scene into the cortex world system ----------------
@@ -173,6 +141,7 @@ robot = world.add_robot(
     )
 )
 
+# only for existing prims in the world
 obj_prim_path = '/World/Cardbox_B2'
 cb_prim = stage.GetPrimAtPath(obj_prim_path)
 if not cb_prim.IsValid():
