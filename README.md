@@ -100,7 +100,7 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
   2. Registering them with the motion generation context via API calls
 
 📎 Reference:  
-[RMPFlow Concepts Documentation](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/manipulators/concepts/index.html)
+[IsaacSim_Motion_Generation_Documentation](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/manipulators/concepts/index.html)
 
 ---
 
