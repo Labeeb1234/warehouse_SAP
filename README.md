@@ -93,6 +93,7 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
   - Target **position**
   - **Orientation**
   - **Approach bias**
+  - **Joint posture bias**
 - Real-time **obstacle avoidance**, conceptually similar to MoveIt2’s planning scene.
 - Obstacles can be added by:
   1. Adding object prims to the stage
