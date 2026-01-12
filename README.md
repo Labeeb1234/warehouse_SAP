@@ -125,7 +125,7 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
 
 - A state-machine-controlled task was implemented to command the arm to reach a specified **target pose**.
 - A **context monitor** continuously evaluated whether the end-effector had successfully reached the goal.
-- State transitions were triggered based on real-time feedback from the monitor.
+- State transitions were triggered based on sim-time feedback from the monitor.
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/94f77860-6ff0-47a4-a6b8-212756888129" 
