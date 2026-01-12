@@ -49,20 +49,92 @@
 ### Documentation
 -------------------------------------------------------------
 
-- Starting out all the tasks and the main framework and software used for this warehouse simualtion, which maybe extended to a digital twin simulation for purposes currently beyond the scope of this documentation
-- Initially the warehouse layout was created using out own blueprint and scale  (image given below) based on a PCB assembly based factory, eventually figured out the required assets for the required scale is hardly present anywhere by default so we scaled down the enviroment with the setup pic as shown in the previous section.
- <div align="centre">
-  <img src="https://github.com/user-attachments/assets/da691860-44eb-4021-bb8f-f10d6aa90420" alt="Initial Setup" height=512 width=512/>
- </div>
+warehouse layout was initially designed using a **custom blueprint and scale**, inspired by a **PCB assembly factory workflow**.
+- During development, it became apparent that **ready-made assets at the required industrial scale were scarce**.
+- To ensure rapid prototyping and functional validation, the environment was **scaled down proportionally**, while preserving spatial relationships and task semantics.
 
-- **Some Results Here** (need to organize)
-    <div>
-     <img src="https://github.com/user-attachments/assets/4b00670c-6c7a-4500-815a-7dfc985fecbf" alt="sigularity testing"/>
-    </div>
+### Initial Setup Reference
 
-    <div>
-     <img src="https://github.com/user-attachments/assets/94f77860-6ff0-47a4-a6b8-212756888129" alt="go to target pose testing"/>
-    </div>
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/da691860-44eb-4021-bb8f-f10d6aa90420" 
+       alt="Initial Setup" height="512" width="512"/>
+</div>
+
+---
+
+## Experimental Results and Observations
+
+> ⚠️ *Note: This section documents early experimental outcomes and will be reorganized further as the project matures.*
+
+### Isolated Manipulation and Object Setup
+
+- The robotic arm and object interactions were **isolated from the full warehouse environment** to validate the behavioral framework independently.
+- This approach allowed focused testing of motion planning, task sequencing, and feedback-driven execution.
+
+---
+
+## Behavioral Framework: Cortex (Isaac Sim)
+
+- The **Cortex framework** in Isaac Sim was used to structure robotic tasks.
+- Cortex enables decomposition of **complex, multi-step, repetitive tasks** into:
+  - **State machines**
+  - **Context-aware state monitors**
+- This design significantly improves task robustness by allowing real-time feedback and conditional transitions.
+
+---
+
+## Motion Generation
+
+- The base motion planner used is **RMPFlow**, Isaac Sim’s default **policy-based motion generation framework**.
+
+### Key Capabilities
+
+- End-effector (EEF) pose control using:
+  - Target **position**
+  - **Orientation**
+  - **Approach bias**
+- Real-time **obstacle avoidance**, conceptually similar to MoveIt2’s planning scene.
+- Obstacles can be added by:
+  1. Adding object prims to the stage
+  2. Registering them with the motion generation context via API calls
+
+📎 Reference:  
+[RMPFlow Concepts Documentation](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/manipulators/concepts/index.html)
+
+---
+
+## State Machine Experiments
+
+### Singularity Testing
+
+- As an initial validation of state-machine-driven control, a **singularity test** was performed.
+- The test involved commanding the robot to reach the **same end-effector pose** using **different joint configurations**, forcing the arm to pass through **null-space planes**.
+- This validated:
+  - Configuration-space diversity
+  - Stability of motion generation near singular regions
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/4b00670c-6c7a-4500-815a-7dfc985fecbf" 
+       alt="Singularity Testing"/>
+</div>
+
+---
+
+### Target Pose Reach Test
+
+- A state-machine-controlled task was implemented to command the arm to reach a specified **target pose**.
+- A **context monitor** continuously evaluated whether the end-effector had successfully reached the goal.
+- State transitions were triggered based on real-time feedback from the monitor.
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/94f77860-6ff0-47a4-a6b8-212756888129" 
+       alt="Go-to Target Pose Testing"/>
+</div>
+
+---
+    
+
+  
 
 
 
