@@ -133,7 +133,18 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
 </div>
 
 ---
-    
+
+### Pick And Place Task (In Isolated Environment) 
+
+- Sequence of state-machine-controlled **pick and place task** was implemented and tested on the same setup.
+- The entire structure only uses context-monitors state machines to transition from one state to another (may not be that reponsive).
+
+<div align="centre">
+  <img src="https://github.com/user-attachments/assets/c3f09a5a-5697-409c-b14c-0b47796cac7a" 
+       alt="State-Machine only pick and place task"/>
+</div>
+
+---
 
   
 
