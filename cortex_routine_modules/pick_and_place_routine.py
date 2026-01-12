@@ -9,7 +9,7 @@ import os
 import omni
 from typing import Optional, Any
 
-from isaacsim.core.prims import RigidPrim #type:ignore
+from isaacsim.core.prims import RigidPrim, XFormPrim #type:ignore
 from pxr import Usd #type:ignore
 
 from isaacsim.cortex.framework.robot import add_ur10_to_stage #type:ignore
@@ -18,7 +18,7 @@ import isaacsim.cortex.framework.math_util as math_utils #type:ignore
 
 from isaacsim.cortex.framework.motion_commander import ApproachParams, PosePq, MotionCommand #type:ignore
 from isaacsim.cortex.framework.cortex_world import CortexWorld #type:ignore
-from isaacsim.cortex.framework.df import DfNetwork, DfState, DfStateMachineDecider, DfStateSequence, DfWaitState #type:ignore
+from isaacsim.cortex.framework.df import DfNetwork, DfDecider, DfState, DfStateMachineDecider, DfStateSequence, DfWaitState #type:ignore
 from isaacsim.cortex.framework.dfb import DfBasicContext, DfRobotApiContext, DfDiagnosticsMonitor #type:ignore
 
 
@@ -34,11 +34,11 @@ class PickAndPlaceDiagnosticsMonitor(DfDiagnosticsMonitor):
         print(context.obj_info)
 
 class PickAndPlaceContext(DfRobotApiContext):
-    def __init__(self, robot, obj: Optional[RigidPrim], p_thresh: float = 0.005, r_thresh: float = 1.0):
+    def __init__(self, robot, obj: Optional[RigidPrim], place_loc: Optional[RigidPrim], p_thresh: float = 0.005, r_thresh: float = 1.0):
         super().__init__(robot)
         self.reset()
         self.add_monitors([
-            PickAndPlaceContext.object_monitor,
+            PickAndPlaceContext.target_monitor,
             PickAndPlaceContext.eef_monitor
         ])
 
@@ -46,11 +46,11 @@ class PickAndPlaceContext(DfRobotApiContext):
         self.obj_attached = False
         # prims and external prim params
         self.obj = obj # object params
+        self.place_loc = place_loc # place location prim
 
         # target params
         self.p_thresh, self.r_thresh = p_thresh, r_thresh
-        self.go_home = False # home target params
-        self.home_target = None # this going to be a Posepq data type
+        self.go_home, self.is_home = False, False # home target params
         self.is_target_pose_reached = False
         self.target_pos, self.target_q = None, None # eef desired target pose vectors (p,q) --> MotionCommand format
     
@@ -62,62 +62,58 @@ class PickAndPlaceContext(DfRobotApiContext):
         self.is_target_pose_reached = False
         self.obj_attached = False
         self.go_home = False
+        self.is_home = False
 
     def eef_monitor(self):
         # extracting eef info (sim sensor feedback data)
         eef_pose_T = self.robot.arm.get_fk_T() # eef pose TF
         eef_pos, eef_q = math_utils.T2pq(eef_pose_T)
         
-        if self.target_pos is not None and self.target_q is not None and not self.go_home:
-            # reach handling logic here
-            target_pose_pq = PosePq(self.target_pos, self.target_q)
-            target_pose_T = target_pose_pq.to_T()
-            self.is_target_pose_reached = math_utils.transforms_are_close(
-                T1=eef_pose_T, T2=target_pose_T,
-                p_thresh=self.p_thresh,
-                R_thresh=self.r_thresh
-            )
-            eef_info = {
-                "eef_pose": PosePq(eef_pos, eef_q), # placeholder
-                "arm_joint_pos": self.robot_art.get_joint_positions(), # 6 joints since 6DOF
-                "eef_dist_to_target": np.linalg.norm(np.array([self.target_pos[:3]-eef_pos[:3]])),
-                # "eef_orient_to_target": float # relative quaternion (all calculations in quaternions since they are computationally faster)
-                # extra optional params if required like joint vel, efforts, etc...
-            }
+        msg = f"""
+            Target Reach Flag: {self.is_target_pose_reached},
+            Go Home State Flag: {self.go_home},
+            Object Attached Flag: {self.obj_attached},
+            Is Home Flag: {self.is_home},
+            Joint Config: {self.robot_art.get_joint_positions()}
+        """
+        print(f"Monitor:\n{msg}\n")
+
+        if self.target_pos is not None and self.target_q is not None:
+            if not self.go_home:
+                # reach handling logic here
+                target_pose_pq = PosePq(self.target_pos, self.target_q)
+                target_pose_T = target_pose_pq.to_T()
+                self.is_target_pose_reached = math_utils.transforms_are_close(
+                    T1=eef_pose_T, T2=target_pose_T,
+                    p_thresh=self.p_thresh,
+                    R_thresh=self.r_thresh
+                )
+            else:
+                target_pose_pq = PosePq(self.target_pos, self.target_q)
+                home_target_T = target_pose_pq.to_T()
+                self.is_target_pose_reached = math_utils.transforms_are_close(
+                    T1=eef_pose_T, T2=home_target_T, 
+                    p_thresh=self.p_thresh,
+                    R_thresh=self.r_thresh
+                )
+        else:
+            print("No Target Pose available")
+
+    def target_monitor(self):
+        # only if the arm has an object and the arm is at home pose set the target location as place location
+        if not self.obj_attached and not self.go_home:
+            obj_pos, obj_q = self.obj.get_world_poses()
+            self.target_pos, self.target_q = np.squeeze(obj_pos), np.squeeze(obj_q)
+        elif self.is_home and self.obj_attached:
+            place_loc_pos, place_loc_q = self.place_loc.get_world_poses()
+            self.target_pos, self.target_q = np.squeeze(place_loc_pos), np.squeeze(place_loc_q)
         elif self.go_home:
             home_config = self.robot.arm.motion_policy.get_default_cspace_position_target()
-            self.home_target = self.robot.arm.get_fk_pq(config=home_config)
-            home_target_T = self.home_target.to_T()
-            self.is_target_pose_reached = math_utils.transforms_are_close(
-                T1=eef_pose_T, T2=home_target_T, 
-                p_thresh=self.p_thresh,
-                R_thresh=self.r_thresh
-            )
-            eef_info = {
-                "eef_pose": PosePq(eef_pos, eef_q), # placeholder
-                "arm_joint_pos": self.robot_art.get_joint_positions(), # 6 joints since 6DOF
-                "eef_dist_to_target": np.linalg.norm(np.array([self.home_target.p[:3]-eef_pos[:3]])),
-                # "eef_orient_to_target": float # relative quaternion (all calculations in quaternions since they are computationally faster)
-                # extra optional params if required like joint vel, efforts, etc...
-            }
-        else:
-            print("No Target Pose available ")
-            eef_info = {
-                "eef_pose": PosePq(eef_pos, eef_q), # placeholder
-                "arm_joint_pos": self.robot_art.get_joint_positions(), # 6 joints since 6DOF
-                "eef_dist_to_target": [],
-                # "eef_orient_to_target": float # relative quaternion (all calculations in quaternions since they are computationally faster)
-                # extra optional params if required like joint vel, efforts, etc...
-            }
+            home_target = self.robot.arm.get_fk_pq(config=home_config)
+            self.target_pos, self.target_q = home_target.p, home_target.q
 
-    def object_monitor(self):
-        obj_pos, obj_q = self.obj.get_world_poses()
-        self.target_pos, self.target_q = np.squeeze(obj_pos), np.squeeze(obj_q)
-        obj_info = {
-            "obj_pose": PosePq(self.target_pos, self.target_q),
-            "num_obj_pickloc": 1,
-            "num_obj_placeloc": 0
-        }
+
+
 
 #--------------------------------------------------------------------------------------------------------------
 
@@ -127,18 +123,31 @@ class PickAndPlaceContext(DfRobotApiContext):
 class ReachToTarget(DfState):
     def __init__(self, task_msg: str, approach_params: Optional[np.ndarray], posture_config: Optional[np.ndarray]):
         super().__init__()
-        print(f"<Reach To {task_msg}>")
+        print(f"<Reach To {task_msg}>") # goes to any target except home state
         self.__entry_time = None
         self.__task_msg = task_msg
+        self.__approach_params = approach_params
+        self.__posture_config = posture_config
 
     def enter(self):
+        if self.context.is_home:
+            self.context.is_home = False
         print(f"\nGoing To Target Pose: ({self.context.target_pos}, {self.context.target_q})")
 
     def step(self):
         if self.context.is_target_pose_reached:
             return None
 
-        self.context.robot.arm.send_end_effector(target_position=self.context.target_pos)
+        if self.__approach_params is not None and self.__posture_config is not None:
+            self.context.robot.arm.send_end_effector(
+                target_position=self.context.target_pos,
+                approach_params=self.__approach_params,
+                posture_config=self.__posture_config
+            )
+        else:
+            self.context.robot.arm.send_end_effector(
+                target_position=self.context.target_pos
+            )
         return self
 
     def exit(self):
@@ -149,19 +158,23 @@ class GoToHome(DfState):
         super().__init__()
         print("<Going Home>")
         self.__entry_time = None
+        self.__posture_config = None
 
     def enter(self):
-        home_config = self.context.robot.arm.motion_policy.get_default_cspace_position_target()
-        self.context.home_target = self.context.robot.arm.get_fk_pq(config=home_config)
-        print(f"Home Pose: ({self.context.home_target.p}, {self.context.home_target.q})")
         self.context.go_home = True
-
+        self.__posture_config = self.context.robot.arm.motion_policy.get_default_cspace_position_target()
+        print(f"Home Pose: ({self.context.target_pos}, {self.context.target_q})")
+        
     def step(self):
         if self.context.is_target_pose_reached:
             self.context.go_home = False
+            self.context.is_home = True
             return None
         
-        self.context.robot.arm.send_end_effector(target_position=self.context.home_target.p)
+        self.context.robot.arm.send_end_effector(
+            target_position=self.context.target_pos,
+            posture_config=self.__posture_config
+        )
         return self
     
     def exit(self):
@@ -171,9 +184,18 @@ class ReachToPick(ReachToTarget):
     def __init__(
         self, 
         approach_params=ApproachParams(direction=0.3*np.array([0.0, 0.0, -1.0]), std_dev=0.005), 
-        posture_config=None
+        posture_config=np.array([-1.8462447, -2.4538538, -1.1502568, -1.1467233, 1.57, 0.0])
     ):
         super().__init__("Reach To Pick", approach_params, posture_config)
+
+class ReachToPlace(ReachToTarget):
+    def __init__(self, 
+        approach_params=ApproachParams(direction=0.3*np.array([0.0, 0.0, -1.0]), std_dev=0.005), 
+        posture_config=np.array([-9.9106693e-01, -2.0576217, -1.7371155, -0.78, 1.7451841, 0.0])
+    ):
+        super().__init__("Reach To Place", approach_params, posture_config)
+
+
 
 class SuctionOpen(DfState):
     def __init__(self):
@@ -187,8 +209,11 @@ class SuctionOpen(DfState):
     def step(self):
         # if still closed try reopening repeatedly
         if self.context.robot.suction_gripper.is_closed():
+            self.context.robot.suction_gripper.open()
             return self
         else:
+            if self.context.obj_attached:
+                self.context.obj_attached = False
             return None
 
     def exit(self):
@@ -204,18 +229,20 @@ class SuctionClose(DfState):
 
     def step(self):
         if not self.context.robot.suction_gripper.is_closed():
+            self.context.robot.suction_gripper.close()
             return self
         else:
+            self.context.obj_attached = True
             return None
 
     def exit(self):
         print("Suction gripper closed\n")
 
 # I think these should be eventually converted to Decider Nodes for more reponsive task planning design
-class PickUpObject(DfState):
+class PickUpObject(DfDecider):
     pass
 
-class PlaceObject(DfState):
+class PlaceObject(DfDecider):
     pass
 
 # -------------------------------------------------------------------------------------------------------------
@@ -264,6 +291,18 @@ obj = RigidPrim(
     name='cb_rigid_view'
 )
 
+# creating a prim for the place location (non-existent the default USD world file)
+place_loc_prim_path = '/World/place_loc'
+place_loc_prim = stage.GetPrimAtPath(place_loc_prim_path)
+if not place_loc_prim.IsValid():
+    raise RuntimeError(f"{place_loc_prim} is not a valid prim path")
+
+place_loc = XFormPrim(
+    prim_paths_expr=place_loc_prim_path,
+    name='place_loc_view'
+)
+
+
 # --------------------- adding the behaviour/decider networks here ----------------------
 decider_network = DfNetwork(
     DfStateMachineDecider(
@@ -271,11 +310,17 @@ decider_network = DfNetwork(
             [
                 ReachToPick(),
                 SuctionClose(),
+                DfWaitState(wait_time=0.5),
                 GoToHome(),
+                DfWaitState(wait_time=0.5),
+                ReachToPlace(),
+                SuctionOpen(),
+                DfWaitState(wait_time=0.5),
+                GoToHome()
             ], 
         
         loop=False)),
-    context=PickAndPlaceContext(robot, obj)
+    context=PickAndPlaceContext(robot, obj, place_loc)
 )
 world.add_decider_network(decider_network)
 # ---------------------------------------------------------------------------------------
