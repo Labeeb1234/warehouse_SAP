@@ -60,6 +60,11 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
        alt="Initial Setup" height="512" width="512"/>
 </div>
 
+<div>
+<img src="" 
+       alt="conveyor process mimic demo" height="512" width="512"/>
+</div>
+
 ---
 
 ## Experimental Results and Observations
