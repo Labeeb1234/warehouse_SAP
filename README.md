@@ -61,7 +61,7 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
 </div>
 
 <div>
-<img src="" 
+<img src="https://github.com/Labeeb1234/warehouse_SAP/blob/main/assembly_line_demo.webm" 
        alt="conveyor process mimic demo" height="512" width="512"/>
 </div>
 
