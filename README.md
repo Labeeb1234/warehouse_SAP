@@ -60,10 +60,9 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
        alt="Initial Setup" height="512" width="512"/>
 </div>
 
-<div>
-<img src="https://github.com/Labeeb1234/warehouse_SAP/blob/main/assembly_line_demo.webm" 
-       alt="conveyor process mimic demo" height="512" width="512"/>
-</div>
+
+<img src="https://github.com/Labeeb1234/warehouse_SAP/blob/main/assembly_line_demo.webm" alt="conveyor process mimic demo"/>
+
 
 ---
 
@@ -152,10 +151,6 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
 ---
 
   
-
-
-
-
 ## ===========================================================
 ### Note:  Check the old model descriptions for more info on those file.
 -------------------------------------------------------------
