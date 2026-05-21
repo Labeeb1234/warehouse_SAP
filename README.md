@@ -8,6 +8,19 @@
 - Progamming Language: Python
 - Other dependencies required are installed automatically when IsaacSim base is installed in the system 
 
+
+
+
+### Warehouse Inventory Management
+--------------------------------------------------------------
+
+- Create warehouse with shelves consisting of different standard sizes of boxes and item pallets for mapping (nvbloc ??) and object detection for simple inventory management usecase (Inter stuff)
+-   
+
+
+
+
+
 ### Tasks (SMTLine assmebly line functionality)
 --------------------------------------------------------------
 
@@ -149,6 +162,7 @@ warehouse layout was initially designed using a **custom blueprint and scale**, 
 </div>
 
 ---
+
 
   
 ## ===========================================================
